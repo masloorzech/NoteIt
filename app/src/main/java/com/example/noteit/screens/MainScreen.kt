@@ -1,54 +1,73 @@
 package com.example.noteit.screens
 
-import android.app.AlertDialog
-import androidx.compose.foundation.Image
+import android.content.Intent
+import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.noteit.CreateTaskActivity
 import com.example.noteit.components.FloatingFrame
-import com.example.noteit.components.TaskPreview
-import kotlin.String
+import com.example.noteit.components.SwipeableTaskItem
+import com.example.noteit.data.viewModel.CategoryViewModel
+import com.example.noteit.data.viewModel.TaskViewModel
+
 
 @Composable
-@Preview(showBackground = true)
-fun MainScreen() {
+fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewModel) {
 
     val listState = rememberLazyListState()
+
+    val categoryList by categoryViewModel.categories.collectAsState()
+
+    val taskList by taskViewModel.allTasks.collectAsState()
+
+    val categoryMap = remember(categoryList) {
+        categoryList.associate { it.id to it.name }
+    }
+
+    var selectedCategory by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+
+    val selectedForDeletion = remember { mutableStateOf<String?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -74,21 +93,78 @@ fun MainScreen() {
 
                 }
             }
+
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 contentPadding = PaddingValues(start = 16.dp)
             ) {
-                items(6) {
-                    FloatingFrame(
-                    ) {
-                        Text("Something")
+                items(categoryList.size) { index ->
+
+                    val category = categoryList[index]
+
+                    Box(contentAlignment = Alignment.TopCenter)
+                    {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            FloatingFrame(
+                                elevation = if (selectedCategory == category.name) 0.dp else 8.dp,
+                                modifier = Modifier
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(
+                                            onTap = {
+                                                Log.d("Category", "Tapped ${category.name}")
+                                                if (selectedCategory == category.name) {
+                                                    selectedCategory = ""
+                                                    selectedForDeletion.value = null
+                                                } else {
+                                                    selectedCategory = category.name
+                                                    selectedForDeletion.value = null
+                                                }
+                                            },
+                                            onLongPress = {
+                                                Log.d("Category", "Long pressed ${category.name}")
+                                                selectedForDeletion.value = category.name
+                                            }
+                                        )
+                                    }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(text = category.name)
+
+                                    AnimatedVisibility(
+                                        visible = selectedForDeletion.value == category.name,
+                                        enter = fadeIn(),
+                                        exit = fadeOut()
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "Delete",
+                                            tint = Color.Red,
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .clickable {
+                                                    categoryViewModel.deleteCategory(category)
+                                                    if (selectedCategory == category.name) {
+                                                        selectedCategory = ""
+                                                    }
+                                                    selectedForDeletion.value = null
+                                                }
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
 
             Box() {
+
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
@@ -97,15 +173,30 @@ fun MainScreen() {
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
-                    items(50) {
-                        TaskPreview(
-                            title = "TitleTitleTitle",
-                            category = "important",
-                            desctiption = "This task involves implementing a new user interface component that displays a task's title, category, and description in a clean and structured layout. The layout should be responsive and support dynamic text wrapping with proper alignment and visual balance.",
-                            date = "31.07.2025 12:00"
-                        )
+                    items(taskList.size) { index ->
+
+                        var task = taskList[index]
+
+                        if (selectedCategory == "" || categoryMap[task.categoryId] == selectedCategory) {
+                            key(task.id, task.isDone) {
+                                SwipeableTaskItem(
+                                    task = task,
+                                    categoryMap = categoryMap,
+                                    selectedCategory = selectedCategory,
+                                    onSwipeRight = {
+                                        taskViewModel.markTask(task)
+                                    },
+                                    onClick = {
+                                        val intent = Intent(context, CreateTaskActivity::class.java)
+                                        intent.putExtra("TaskId", task.id)
+                                        context.startActivity(intent)
+                                    }
+                                )
+                            }
+                        }
                     }
                 }
+
                 if (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0) {
                     Box(
                         modifier = Modifier
@@ -137,7 +228,10 @@ fun MainScreen() {
 
         }
         FloatingActionButton(
-            onClick = { /* TODO: Action */ },
+            onClick = {
+                val intent = Intent(context, CreateTaskActivity::class.java)
+                context.startActivity(intent)
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(24.dp)

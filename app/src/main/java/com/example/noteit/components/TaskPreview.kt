@@ -1,19 +1,11 @@
 package com.example.noteit.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,14 +32,18 @@ fun TaskPreview(
     title: String,
     category: String,
     desctiption: String,
-    date: String
+    date: String,
+    attachmentFlag: Boolean,
+    notificationFlag: Boolean,
+    modifier: Modifier = Modifier,
 ){
 
-    var attachment by remember { mutableStateOf(true) }
+    var attachment by remember { mutableStateOf(attachmentFlag) }
 
-    var notification by remember { mutableStateOf(true) }
+    var notification by remember { mutableStateOf(notificationFlag) }
 
-    FloatingFrame {
+    FloatingFrame(modifier,
+        elevation = 0.dp) {
         Row(){
             Column(){
                 Row(
@@ -104,16 +100,3 @@ fun TaskPreview(
     }
 }
 
-
-@Composable
-@Preview(showBackground = true)
-fun TaskPreviewPreview(){
-
-    TaskPreview(
-        title = "Task name",
-        category = "daily",
-        desctiption = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean enim sapien, placerat ut blandit sit amet, condimentum a turpis. In in viverra enim, at blandit lorem. Nulla nisl arcu, mattis non tellus sit amet, auctor vehicula est. Sed justo turpis, dignissim et nisl sed, dictum volutpat justo. Aliquam elementum nulla lorem, quis ultrices libero efficitur eget. Quisque facilisis tellus non eros dignissim accumsan quis ac ante. Sed malesuada ligula eu eros ultrices interdum. Donec nulla neque, sodales id laoreet eget, aliquet posuere nisl. Phasellus facilisis varius tincidunt. Suspendisse nulla enim, aliquam ut sapien eu, posuere tristique est.",
-        date = "29.05.2025 12:00"
-    )
-
-}
