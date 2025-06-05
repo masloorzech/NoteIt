@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +40,7 @@ fun SwipeableTaskItem(
     categoryMap: Map<Int, String>,
     selectedCategory: String,
     onSwipeRight: () -> Unit,
+    onSwipeLeft: () -> Unit,
     onClick: () -> Unit
 ) {
     val swipeThreshold = 300f
@@ -73,26 +75,47 @@ fun SwipeableTaskItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-        ) {
+                .background(if (offset.value < 0){
+                    Color(0x85FF2929)
+                } else if (offset.value > 0) {
+                    if (!task.isDone) {
+                        Color(0x8529FFA2)
+                    }else{
+                        Color(0x85DFFF29)
+                    }
+                }
+                else{
+                    Color.Transparent
+                }, shape = RoundedCornerShape(16.dp))
+            ) {
 
             Box(
                 modifier = Modifier
                     .matchParentSize(),
-                contentAlignment = Alignment.CenterStart
+                contentAlignment = if (offset.value > 0) Alignment.CenterStart else Alignment.CenterEnd
             ) {
-                if (task.isDone){
+                if (offset.value>0) {
+                    if (task.isDone) {
+                        Icon(
+                            imageVector = Icons.Default.Clear,
+                            contentDescription = "Rollback",
+                            tint = Color.Black,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Done",
+                            tint = Color.Black,
+                            modifier = Modifier.padding(start = 16.dp)
+                        )
+                    }
+                }else if (offset.value<0){
                     Icon(
-                        imageVector = Icons.Default.Clear,
+                        imageVector = Icons.Default.Delete,
                         contentDescription = "Rollback",
                         tint = Color.Black,
-                        modifier = Modifier.padding(start = 16.dp)
-                    )
-                }else {
-                    Icon(
-                        imageVector = Icons.Default.Check,
-                        contentDescription = "Done",
-                        tint = Color.Black,
-                        modifier = Modifier.padding(start = 16.dp)
+                        modifier = Modifier.padding(end = 16.dp)
                     )
                 }
             }
@@ -107,13 +130,13 @@ fun SwipeableTaskItem(
                         detectHorizontalDragGestures(
                             onHorizontalDrag = { _, dragAmount ->
                                 scope.launch {
-                                    val newOffset = (offset.value + dragAmount).coerceAtLeast(0f)
+                                    val newOffset = (offset.value + dragAmount).coerceIn(-swipeThreshold*100, swipeThreshold*100)
                                     offset.snapTo(newOffset)
                                 }
                             },
                             onDragEnd = {
                                 scope.launch {
-                                    if (offset.value > swipeThreshold) {
+                                    if (offset.value > swipeThreshold*0.8) {
                                         thresholdAcheived.value = !thresholdAcheived.value
                                         offset.animateTo(
                                             targetValue = 0f,
@@ -121,7 +144,15 @@ fun SwipeableTaskItem(
                                         )
                                         onSwipeRight()
                                         offset.snapTo(0f)
-                                    } else {
+                                    }else if (offset.value < -swipeThreshold*0.8){
+                                        offset.animateTo(
+                                            targetValue = 0f,
+                                            animationSpec = androidx.compose.animation.core.tween(durationMillis = 300)
+                                        )
+                                        onSwipeLeft()
+                                        offset.snapTo(0f)
+                                    }
+                                    else {
                                         offset.animateTo(
                                             targetValue = 0f,
                                             animationSpec = androidx.compose.animation.core.spring()
@@ -136,23 +167,26 @@ fun SwipeableTaskItem(
                     title = task.title,
                     category = categoryMap[task.categoryId] ?: "No category",
                     desctiption = task.description,
-                    date = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(task.dueAt),
+                    date = SimpleDateFormat(
+                        "dd.MM.yyyy HH:mm",
+                        Locale.getDefault()
+                    ).format(task.dueAt),
                     attachmentFlag = task.attachmentId != null,
                     notificationFlag = task.hasNotification,
                     modifier = Modifier
                         .clickable { onClick() }
                         .graphicsLayer {
-                            if (task.isDone == true){
-                                if (thresholdAcheived.value == true){
+                            if (task.isDone == true) {
+                                if (thresholdAcheived.value == true) {
                                     Modifier
-                                }else{
+                                } else {
                                     renderEffect = dynamicBlurEffect
                                 }
                             }
-                            if (task.isDone == false){
-                                if (thresholdAcheived.value == true){
+                            if (task.isDone == false) {
+                                if (thresholdAcheived.value == true) {
                                     renderEffect = blurEffect
-                                }else{
+                                } else {
                                     renderEffect = dynamicBlurEffect
                                 }
                             }

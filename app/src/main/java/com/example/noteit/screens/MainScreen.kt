@@ -69,7 +69,8 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
 
     val selectedForDeletion = remember { mutableStateOf<String?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()
+        .padding(top =48.dp)) {
         Column(
             modifier = Modifier
                 .fillMaxSize(),
@@ -106,56 +107,52 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
 
                     Box(contentAlignment = Alignment.TopCenter)
                     {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FloatingFrame(
-                                elevation = if (selectedCategory == category.name) 0.dp else 8.dp,
-                                modifier = Modifier
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(
-                                            onTap = {
-                                                Log.d("Category", "Tapped ${category.name}")
+                        FloatingFrame(
+                            elevation = if (selectedCategory == category.name) 0.dp else 8.dp,
+                            modifier = Modifier
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            if (selectedCategory == category.name) {
+                                                selectedCategory = ""
+                                                selectedForDeletion.value = null
+                                            } else {
+                                                selectedCategory = category.name
+                                                selectedForDeletion.value = null
+                                            }
+                                        },
+                                        onLongPress = {
+                                            selectedForDeletion.value = category.name
+                                        }
+                                    )
+                                }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(text = category.name)
+
+                                AnimatedVisibility(
+                                    visible = selectedForDeletion.value == category.name,
+                                    enter = fadeIn(),
+                                    exit = fadeOut()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.Red,
+                                        modifier = Modifier
+                                            .size(20.dp)
+                                            .clickable {
+                                                categoryViewModel.deleteCategory(category)
                                                 if (selectedCategory == category.name) {
                                                     selectedCategory = ""
-                                                    selectedForDeletion.value = null
-                                                } else {
-                                                    selectedCategory = category.name
-                                                    selectedForDeletion.value = null
                                                 }
-                                            },
-                                            onLongPress = {
-                                                Log.d("Category", "Long pressed ${category.name}")
-                                                selectedForDeletion.value = category.name
+                                                selectedForDeletion.value = null
                                             }
-                                        )
-                                    }
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Text(text = category.name)
-
-                                    AnimatedVisibility(
-                                        visible = selectedForDeletion.value == category.name,
-                                        enter = fadeIn(),
-                                        exit = fadeOut()
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete",
-                                            tint = Color.Red,
-                                            modifier = Modifier
-                                                .size(20.dp)
-                                                .clickable {
-                                                    categoryViewModel.deleteCategory(category)
-                                                    if (selectedCategory == category.name) {
-                                                        selectedCategory = ""
-                                                    }
-                                                    selectedForDeletion.value = null
-                                                }
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -164,13 +161,12 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
             }
 
             Box() {
-
                 LazyColumn(
                     state = listState,
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     contentPadding = PaddingValues(bottom = 96.dp)
                 ) {
                     items(taskList.size) { index ->
@@ -185,6 +181,9 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
                                     selectedCategory = selectedCategory,
                                     onSwipeRight = {
                                         taskViewModel.markTask(task)
+                                    },
+                                    onSwipeLeft = {
+                                        taskViewModel.delete(task)
                                     },
                                     onClick = {
                                         val intent = Intent(context, CreateTaskActivity::class.java)

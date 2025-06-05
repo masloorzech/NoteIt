@@ -45,6 +45,9 @@ class MainActivity : ComponentActivity() {
             val cat1Id = db.categoryDao().insert(Category(name = "Praca")).toInt()
             val cat2Id = db.categoryDao().insert(Category(name = "Dom")).toInt()
             val cat3Id = db.categoryDao().insert(Category(name = "Hobby")).toInt()
+            val cat4Id = db.categoryDao().insert(Category(name = "Pomysly")).toInt()
+            val cat5Id = db.categoryDao().insert(Category(name = "Randki")).toInt()
+            val cat6Id = db.categoryDao().insert(Category(name = "D&D")).toInt()
 
             db.taskDao().insert(
                 Task(
