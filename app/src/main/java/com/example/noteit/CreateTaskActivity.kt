@@ -11,12 +11,33 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.ViewModelProvider
+import com.example.noteit.data.DatabaseProvider
+import com.example.noteit.data.factory.CategoryViewModelFactory
+import com.example.noteit.data.factory.TaskViewModelFactory
+import com.example.noteit.data.repository.CategoryRepository
+import com.example.noteit.data.repository.TaskRepository
+import com.example.noteit.data.viewModel.CategoryViewModel
+import com.example.noteit.data.viewModel.TaskViewModel
 import com.example.noteit.ui.theme.NoteItTheme
 
 class CreateTaskActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val noteTitle = intent.getStringExtra("")
+
+        val db = DatabaseProvider.getDatabase(applicationContext)
+
+        val taskRepository = TaskRepository(db.taskDao())
+        val taskViewModelFactory = TaskViewModelFactory(taskRepository)
+        val taskViewModel = ViewModelProvider(this, taskViewModelFactory)[TaskViewModel::class.java]
+
+        val categoryRepository = CategoryRepository(db.categoryDao())
+        val categoryViewModelFactory = CategoryViewModelFactory(categoryRepository)
+        val categoryViewModel = ViewModelProvider(this, categoryViewModelFactory)[CategoryViewModel::class.java]
+
         setContent {
             NoteItTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->

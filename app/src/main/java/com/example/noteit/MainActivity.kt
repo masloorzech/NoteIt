@@ -21,6 +21,7 @@ import com.example.noteit.data.model.Task
 import com.example.noteit.data.repository.CategoryRepository
 import com.example.noteit.data.repository.TaskRepository
 import com.example.noteit.data.viewModel.CategoryViewModel
+import com.example.noteit.screens.CreateTaskScreen
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -39,53 +40,6 @@ class MainActivity : ComponentActivity() {
         val categoryViewModelFactory = CategoryViewModelFactory(categoryRepository)
         val categoryViewModel = ViewModelProvider(this, categoryViewModelFactory)[CategoryViewModel::class.java]
 
-        // DEBUG
-        GlobalScope.launch {
-            db.clearAllTables()
-            val cat1Id = db.categoryDao().insert(Category(name = "Praca")).toInt()
-            val cat2Id = db.categoryDao().insert(Category(name = "Dom")).toInt()
-            val cat3Id = db.categoryDao().insert(Category(name = "Hobby")).toInt()
-            val cat4Id = db.categoryDao().insert(Category(name = "Pomysly")).toInt()
-            val cat5Id = db.categoryDao().insert(Category(name = "Randki")).toInt()
-            val cat6Id = db.categoryDao().insert(Category(name = "D&D")).toInt()
-
-            db.taskDao().insert(
-                Task(
-                    title = "Zadanie do pracy",
-                    description = "Zrobić raport miesięczny",
-                    createdAt = System.currentTimeMillis(),
-                    dueAt = System.currentTimeMillis() + 86400000,
-                    isDone = false,
-                    hasNotification = true,
-                    categoryId = cat1Id
-                )
-            )
-
-            db.taskDao().insert(
-                Task(
-                    title = "Sprzątanie",
-                    description = "Odkurzyć pokój i umyć podłogi",
-                    createdAt = System.currentTimeMillis(),
-                    dueAt = System.currentTimeMillis() + 2 * 86400000,
-                    isDone = true,
-                    hasNotification = false,
-                    categoryId = cat2Id
-                )
-            )
-
-            db.taskDao().insert(
-                Task(
-                    title = "Pomalować figurki",
-                    description = "Dokończyć malowanie krasnoludów",
-                    createdAt = System.currentTimeMillis(),
-                    dueAt = System.currentTimeMillis() + 3 * 86400000,
-                    isDone = false,
-                    hasNotification = true,
-                    categoryId = cat3Id
-                )
-            )
-        }
-
         setContent {
             Screen(taskViewModel = taskViewModel, categoryViewModel=categoryViewModel)
         }
@@ -101,6 +55,6 @@ fun Screen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewModel) {
             .fillMaxSize()
 
     ) {
-        MainScreen(taskViewModel = taskViewModel,categoryViewModel=categoryViewModel)
+        CreateTaskScreen()
     }
 }

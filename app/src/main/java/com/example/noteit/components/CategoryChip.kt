@@ -55,7 +55,7 @@ fun CategoryChip(
         Text(
             text = text,
             color = Color.Black,
-            fontSize = 16.sp,
+            fontSize = 18.sp,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .padding(vertical = 0.dp, horizontal = 8.dp)

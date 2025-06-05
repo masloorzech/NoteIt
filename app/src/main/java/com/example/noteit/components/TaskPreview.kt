@@ -88,13 +88,14 @@ fun TaskPreview(
                     .height(10.dp))
                 Text("$desctiption",
                     maxLines = 2,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     overflow = TextOverflow.Ellipsis,
                     fontStyle = FontStyle.Italic,
                     textAlign = TextAlign.Justify)
                 Spacer(Modifier
                     .height(10.dp))
-                CategoryChip("$date")
+                Text("$date",
+                    fontSize = 16.sp)
             }
         }
     }

@@ -1,13 +1,7 @@
 package com.example.noteit.screens
 
 import android.content.Intent
-import android.util.Log
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,7 +18,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,12 +32,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.noteit.CreateTaskActivity
 import com.example.noteit.components.FloatingFrame
+import com.example.noteit.components.SwipeableCategoryItem
 import com.example.noteit.components.SwipeableTaskItem
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
@@ -63,11 +56,9 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
         categoryList.associate { it.id to it.name }
     }
 
-    var selectedCategory by remember { mutableStateOf("") }
+    var selectedCategories by remember {  mutableStateOf(listOf<String>())  }
 
     val context = LocalContext.current
-
-    val selectedForDeletion = remember { mutableStateOf<String?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()
         .padding(top =48.dp)) {
@@ -105,56 +96,21 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
 
                     val category = categoryList[index]
 
-                    Box(contentAlignment = Alignment.TopCenter)
-                    {
-                        FloatingFrame(
-                            elevation = if (selectedCategory == category.name) 0.dp else 8.dp,
-                            modifier = Modifier
-                                .pointerInput(Unit) {
-                                    detectTapGestures(
-                                        onTap = {
-                                            if (selectedCategory == category.name) {
-                                                selectedCategory = ""
-                                                selectedForDeletion.value = null
-                                            } else {
-                                                selectedCategory = category.name
-                                                selectedForDeletion.value = null
-                                            }
-                                        },
-                                        onLongPress = {
-                                            selectedForDeletion.value = category.name
-                                        }
-                                    )
-                                }
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(text = category.name)
-
-                                AnimatedVisibility(
-                                    visible = selectedForDeletion.value == category.name,
-                                    enter = fadeIn(),
-                                    exit = fadeOut()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = Color.Red,
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clickable {
-                                                categoryViewModel.deleteCategory(category)
-                                                if (selectedCategory == category.name) {
-                                                    selectedCategory = ""
-                                                }
-                                                selectedForDeletion.value = null
-                                            }
-                                    )
-                                }
-                            }
+                    key(category.id) {
+                        Box(contentAlignment = Alignment.TopCenter)
+                        {
+                            SwipeableCategoryItem(category= category, selectedCategories = selectedCategories,
+                                onSwipeUp = {
+                                    categoryViewModel.deleteCategory(category)
+                                    selectedCategories = selectedCategories - category.name
+                                },
+                                onClick = {
+                                    selectedCategories = if (selectedCategories.contains(category.name)) {
+                                        selectedCategories - category.name
+                                    } else {
+                                        selectedCategories + category.name
+                                    }
+                                })
                         }
                     }
                 }
@@ -172,13 +128,11 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
                     items(taskList.size) { index ->
 
                         var task = taskList[index]
-
-                        if (selectedCategory == "" || categoryMap[task.categoryId] == selectedCategory) {
                             key(task.id, task.isDone) {
                                 SwipeableTaskItem(
                                     task = task,
                                     categoryMap = categoryMap,
-                                    selectedCategory = selectedCategory,
+                                    selectedCategories = selectedCategories,
                                     onSwipeRight = {
                                         taskViewModel.markTask(task)
                                     },
@@ -193,7 +147,6 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
                                 )
                             }
                         }
-                    }
                 }
 
                 if (listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > 0) {
