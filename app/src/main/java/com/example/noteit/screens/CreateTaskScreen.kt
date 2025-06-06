@@ -23,10 +23,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -37,9 +41,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -51,15 +58,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.noteit.CreateTaskActivity
+import com.example.noteit.R
 import com.example.noteit.components.FloatingFrame
 import com.example.noteit.components.SwipeableCategoryItem
 import com.example.noteit.components.SwipeableTaskItem
+import com.example.noteit.data.model.Task
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
 import java.text.SimpleDateFormat
@@ -67,16 +80,47 @@ import java.util.Calendar
 import java.util.Locale
 
 @Composable
-@Preview(showBackground = true)
-fun CreateTaskScreen() {
+fun CreateTaskScreen(
+    taskId: Int?,
+    categoryViewModel: CategoryViewModel,
+    taskViewModel: TaskViewModel
+) {
+
+    var task by remember { mutableStateOf<Task?>(null) }
+
+    LaunchedEffect(taskId) {
+        if (taskId != null) {
+            task = taskViewModel.getTaskById(taskId)
+        }
+    }
+
+    var title by remember { mutableStateOf("") }
+    var description by remember { mutableStateOf("") }
+    var selectedDateTime by remember { mutableStateOf("") }
+    var creationDate by remember { mutableStateOf("") }
+    var creationTime by remember { mutableStateOf("") }
+
+    LaunchedEffect(task) {
+        task?.let {
+            title = it.title
+            description = it.description
+            selectedDateTime = it.dueAt.toString()
+            creationDate
+        }
+    }
+
+    val allCategories by categoryViewModel.categories.collectAsState()
 
     val scrollState = rememberScrollState()
 
     var isNotificationEnabled by remember { mutableStateOf(false) }
 
+    var notififationOn by remember { mutableStateOf(false) }
+
     val context = LocalContext.current
+
     val calendar = Calendar.getInstance()
-    var selectedDateTime by remember { mutableStateOf("") }
+
     val dateTimeFormat = remember { SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()) }
 
     val datetime = selectedDateTime.trim()
@@ -122,25 +166,32 @@ fun CreateTaskScreen() {
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    var longText =""
+    var categoryText by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    val filteredCategories = allCategories.filter {
+        it.name.contains(categoryText, ignoreCase = true) && categoryText.isNotBlank()
+    }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-    ){
-        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 64.dp)){
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 64.dp)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-            ){
+            ) {
                 Column(
                     modifier = Modifier
                         .weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Created:",
+                    Text(
+                        "Created:",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp)
+                        fontSize = 24.sp
+                    )
                     FloatingFrame(
                         modifier = Modifier
                             .padding(vertical = 0.dp, horizontal = 16.dp)
@@ -148,33 +199,42 @@ fun CreateTaskScreen() {
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally){
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             Text(
-                                "12.02.2002",
+                                "",
                                 fontSize = 20.sp,
                             )
                             Text(
-                                "10:22",
+                                "",
                                 fontSize = 20.sp,
                             )
                         }
                     }
                 }
-                Column( modifier = Modifier
-                    .weight(1f),
+                Column(
+                    modifier = Modifier
+                        .weight(1f),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Due To:",
+                    Text(
+                        "Due To:",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp)
+                        fontSize = 24.sp
+                    )
 
                     FloatingFrame(
                         modifier = Modifier
                             .padding(vertical = 0.dp, horizontal = 16.dp)
+                            .clickable{
+                                datePickerDialog.show()
+                            }
                     ) {
-                        Column(modifier = Modifier
-                            .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
                             if (selectedDateTime.isNotEmpty()) {
                                 Text(
                                     "$onlyDate",
@@ -198,65 +258,100 @@ fun CreateTaskScreen() {
                     }
                 }
             }
-            Column(
+            Row(
                 modifier = Modifier
-                .padding(top = 15.dp)){
-                Text("Notifications")
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth(0.5f)
+                    .padding(top = 15.dp)
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Box( modifier = Modifier
-                        .padding(start = 4.dp)
-                        .weight(1f)) {
-                        Button(
-                            onClick = { isNotificationEnabled = true },
-                            enabled = !isNotificationEnabled,
-                            modifier = Modifier.padding(end = 8.dp)
+                    Text("Task name")
+
+                    var text by remember { mutableStateOf("") }
+
+                    TextField(
+                        value = text,
+                        onValueChange = {
+                            text = it
+                        },
+                        placeholder = { Text("Enter task name", fontSize = 18.sp) },
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            errorContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.LightGray
+                        ),
+                        modifier = Modifier
+                            .background(Color.Transparent)
+                            .fillMaxWidth()
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    Column() {
+                        Text("Category")
+
+                        TextField(
+                            value = categoryText,
+                            onValueChange = {
+                                categoryText = it
+                                expanded = it.isNotBlank()
+                            },
+                            placeholder = { Text("Select or create category", fontSize = 18.sp,
+                                color = Color.Black) },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent,
+                                errorContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent,
+                                disabledIndicatorColor = Color.Transparent,
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.LightGray
+                            ),
+                            modifier = Modifier
+                                .background(Color.Transparent)
+                                .fillMaxWidth()
+                        )
+                        AnimatedVisibility(
+                            visible = expanded && filteredCategories.isNotEmpty(),
+                            enter = fadeIn(), exit = fadeOut()
                         ) {
-                            Text("ON")
-                        }
-                    }
-                    Box( modifier = Modifier
-                        .padding(end = 4.dp)
-                        .weight(1f)) {
-                        Button(
-                            onClick = { isNotificationEnabled = false },
-                            enabled = isNotificationEnabled
-                        ) {
-                            Text("OFF")
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentSize()
+                                    .background(Color.DarkGray),
+                                shape = RoundedCornerShape(8.dp),
+                                shadowElevation = 8.dp
+                            ) {
+                                LazyColumn {
+                                    items(filteredCategories.size) { index ->
+                                        val category = filteredCategories[index]
+                                        Text(
+                                            text = category.name,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    categoryText = category.name
+                                                    expanded = false
+                                                }
+                                                .padding(12.dp),
+                                            color = Color.White
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
-            }
-            Column(modifier = Modifier
-                .padding(top = 15.dp)){
-                Text("Category")
-
-                var text by remember { mutableStateOf("") }
-
-                TextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text("Category") },
-                    enabled = false
-                )
-                LazyColumn(){
-                }
-            }
-
-            Column(modifier = Modifier
-                .padding(top = 15.dp)){
-                Text("Task name")
-
-                var text by remember { mutableStateOf("") }
-
-                TextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text("Category") },
-                    enabled = false
-                )
             }
 
             Column(
@@ -268,18 +363,75 @@ fun CreateTaskScreen() {
                 Text("Task description")
 
                 TextField(
-                    value = longText,
-                    onValueChange = { longText = it },
-
+                    value = description,
+                    placeholder = { Text("Enter your task description", fontSize = 18.sp) },
+                    onValueChange = { description = it },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        errorContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent,
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.LightGray
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
                     singleLine = false,
                 )
             }
-            Text("Attachments:")
+            Row() {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    shadowElevation = if (notififationOn) 8.dp else 0.dp,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(color = Color(0xFFCECECE))
+                            .padding(16.dp)
+                            .clickable{
+                                notififationOn = !notififationOn
+                            }
+                    ) {
+                        if (notififationOn) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.outline_notifications_24),
+                                contentDescription = "attachment",
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.outline_notifications_off_24),
+                                contentDescription = "attachment",
+                            )
+                        }
+                    }
+                }
+                Spacer(
+                    modifier = Modifier
+                        .width(32.dp)
+                )
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    shadowElevation = 8.dp
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(color = Color(0xFFCECECE))
+                            .padding(16.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.baseline_attach_file_24),
+                            contentDescription = "attachment",
+                        )
+                    }
+                }
+            }
+
             LazyColumn(
-                
+
             ) {
 
             }
@@ -287,29 +439,20 @@ fun CreateTaskScreen() {
         }
         FloatingActionButton(
             onClick = {
+                //todo Add task or modify task
                 (context as? Activity)?.finish()
             },
             modifier = Modifier
                 .padding(24.dp)
-                .align(Alignment.BottomCenter)
-                .size(64.dp),
+                .align(Alignment.TopStart)
+                .size(32.dp),
             containerColor = Color(0xFFE0E0E0),
             contentColor = Color.Black
         ) {
-            Text("Save")
-        }
-        FloatingActionButton(
-            onClick = {
-                (context as? Activity)?.finish()
-            },
-            modifier = Modifier
-                .padding(24.dp)
-                .align(Alignment.BottomStart)
-                .size(64.dp),
-            containerColor = Color(0xFFE0E0E0),
-            contentColor = Color.Black
-        ) {
-            Text("Discard")
+            Icon(
+                painter = painterResource(id = R.drawable.baseline_arrow_back_24),
+                contentDescription = "save and quit"
+            )
         }
     }
 }

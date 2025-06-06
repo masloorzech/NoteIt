@@ -17,6 +17,10 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
         initialValue = emptyList()
     )
 
+    suspend fun getTaskById(id: Int): Task? {
+        return repository.getTaskById(id)
+    }
+
     fun markTask(task: Task) = viewModelScope.launch{
         val updatedTask = task.copy(isDone = !task.isDone)
         repository.update(updatedTask)

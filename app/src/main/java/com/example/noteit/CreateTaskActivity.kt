@@ -19,6 +19,7 @@ import com.example.noteit.data.repository.CategoryRepository
 import com.example.noteit.data.repository.TaskRepository
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
+import com.example.noteit.screens.CreateTaskScreen
 import com.example.noteit.ui.theme.NoteItTheme
 
 class CreateTaskActivity : ComponentActivity() {
@@ -26,7 +27,7 @@ class CreateTaskActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val noteTitle = intent.getStringExtra("")
+        val noteId = intent.getStringExtra("")
 
         val db = DatabaseProvider.getDatabase(applicationContext)
 
@@ -39,30 +40,7 @@ class CreateTaskActivity : ComponentActivity() {
         val categoryViewModel = ViewModelProvider(this, categoryViewModelFactory)[CategoryViewModel::class.java]
 
         setContent {
-            NoteItTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+            CreateTaskScreen(noteId?.toInt(),categoryViewModel,taskViewModel)
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    NoteItTheme {
-        Greeting("Android")
     }
 }

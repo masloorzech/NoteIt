@@ -55,6 +55,6 @@ fun Screen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewModel) {
             .fillMaxSize()
 
     ) {
-        CreateTaskScreen()
+        MainScreen(taskViewModel,categoryViewModel)
     }
 }
