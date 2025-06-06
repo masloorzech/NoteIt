@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.style.TextAlign
@@ -25,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.noteit.R
+import com.example.noteit.ui.theme.Manuale
 
 
 @Composable
@@ -54,7 +56,7 @@ fun TaskPreview(
                 ){
                     Text("$title",
                         fontSize = 24.sp,
-                        fontWeight = Bold)
+                        fontWeight = Bold, style = TextStyle(fontFamily = Manuale))
 
                     Spacer(Modifier
                         .weight(1f))
@@ -91,11 +93,13 @@ fun TaskPreview(
                     fontSize = 18.sp,
                     overflow = TextOverflow.Ellipsis,
                     fontStyle = FontStyle.Italic,
-                    textAlign = TextAlign.Justify)
+                    textAlign = TextAlign.Justify,
+                    style = TextStyle(fontFamily = Manuale))
                 Spacer(Modifier
                     .height(10.dp))
                 Text("$date",
-                    fontSize = 16.sp)
+                    fontSize = 16.sp
+                ,style = TextStyle(fontFamily = Manuale))
             }
         }
     }

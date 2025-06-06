@@ -32,6 +32,11 @@ class CategoryViewModel(private val repository: CategoryRepository) : ViewModel(
         }
     }
 
+    suspend fun addCategoryAndReturnId(name: String): Long {
+        val category = Category(name = name)
+        return repository.addCategoryAndReturnId(category)
+    }
+
     fun loadCategories() {
         viewModelScope.launch {
             repository.getAllCategories().collect { categories ->

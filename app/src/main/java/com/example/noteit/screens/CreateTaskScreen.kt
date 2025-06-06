@@ -3,19 +3,15 @@ package com.example.noteit.screens
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
-import android.content.Intent
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,20 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.sharp.Home
-import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
@@ -49,35 +35,120 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.noteit.CreateTaskActivity
+import androidx.compose.ui.zIndex
 import com.example.noteit.R
 import com.example.noteit.components.FloatingFrame
-import com.example.noteit.components.SwipeableCategoryItem
-import com.example.noteit.components.SwipeableTaskItem
+import com.example.noteit.data.model.Category
 import com.example.noteit.data.model.Task
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
+import com.example.noteit.ui.theme.Manuale
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.util.Date
 import java.util.Locale
+import kotlin.math.min
+
+
+fun convertDateTimeToTwoStrings(datetime: String): Pair<String, String> {
+    val formatter = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
+    return try {
+        val date = formatter.parse(datetime)
+        val datePart = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(date)
+        val timePart = SimpleDateFormat("HH:mm", Locale.getDefault()).format(date)
+        Pair(datePart, timePart)
+    } catch (e: Exception) {
+        Pair("", "")
+    }
+}
+
+@Composable
+fun DateTimePanel(
+    date : String,
+    time : String
+){
+    FloatingFrame(
+        modifier = Modifier
+            .padding(vertical = 0.dp, horizontal = 16.dp)
+    ) {
+
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(date,
+                fontSize = 20.sp,
+                style = TextStyle(fontFamily = Manuale)
+            )
+            Text(time,
+                fontSize = 20.sp,
+                style = TextStyle(fontFamily = Manuale)
+            )
+        }
+    }
+}
+
+@Composable
+fun DueToTimePanel(
+    datePickerDialog: DatePickerDialog,
+    date: String,
+    time: String
+){
+    FloatingFrame(
+        modifier = Modifier
+            .padding(vertical = 0.dp, horizontal = 16.dp)
+            .clickable{
+                datePickerDialog.show()
+            }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (date.isNotEmpty()) {
+                Text(
+                    date,
+                    fontSize = 20.sp,
+                    style = TextStyle(fontFamily = Manuale)
+                )
+                Text(
+                    time,
+                    fontSize = 20.sp,
+                    style = TextStyle(fontFamily = Manuale)
+                )
+            } else {
+                Text(
+                    "Select",
+                    fontSize = 20.sp,
+                    style = TextStyle(fontFamily = Manuale)
+                )
+                Text(
+                    "date & time",
+                    fontSize = 20.sp,
+                    style = TextStyle(fontFamily = Manuale)
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun CreateTaskScreen(
@@ -86,61 +157,39 @@ fun CreateTaskScreen(
     taskViewModel: TaskViewModel
 ) {
 
-    var task by remember { mutableStateOf<Task?>(null) }
-
-    LaunchedEffect(taskId) {
-        if (taskId != null) {
-            task = taskViewModel.getTaskById(taskId)
-        }
-    }
-
-    var title by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var selectedDateTime by remember { mutableStateOf("") }
-    var creationDate by remember { mutableStateOf("") }
-    var creationTime by remember { mutableStateOf("") }
-
-    LaunchedEffect(task) {
-        task?.let {
-            title = it.title
-            description = it.description
-            selectedDateTime = it.dueAt.toString()
-            creationDate
-        }
+    var task by remember { mutableStateOf<Task>(
+        Task(
+            title = "",
+            description = "",
+            createdAt = System.currentTimeMillis(),
+            dueAt = System.currentTimeMillis())
+        )
     }
 
     val allCategories by categoryViewModel.categories.collectAsState()
 
-    val scrollState = rememberScrollState()
+    var categoryText by remember { mutableStateOf("") }
 
-    var isNotificationEnabled by remember { mutableStateOf(false) }
+    var selectedDateTime by remember { mutableStateOf<Long?>(null) }
+
+    LaunchedEffect(taskId, allCategories) {
+        if (taskId != null) {
+            val loadedTask = taskViewModel.getTaskById(taskId)
+            if (loadedTask != null) {
+                task = loadedTask
+                categoryText = allCategories.find { it.id == task.categoryId }?.name ?: ""
+            }
+        }
+    }
+
+
+    val scrollState = rememberScrollState()
 
     var notififationOn by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
     val calendar = Calendar.getInstance()
-
-    val dateTimeFormat = remember { SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault()) }
-
-    val datetime = selectedDateTime.trim()
-
-    val onlyDate: String
-    val onlyTime: String
-
-    if (datetime.isNotEmpty()) {
-        val inputFormat = SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.getDefault())
-        val date = inputFormat.parse(datetime)
-
-        val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
-        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-
-        onlyDate = dateFormat.format(date!!)
-        onlyTime = timeFormat.format(date)
-    } else {
-        onlyDate = ""
-        onlyTime = ""
-    }
 
     val datePickerDialog = DatePickerDialog(
         context,
@@ -154,7 +203,7 @@ fun CreateTaskScreen(
                 { _, hourOfDay, minute ->
                     calendar.set(Calendar.HOUR_OF_DAY, hourOfDay)
                     calendar.set(Calendar.MINUTE, minute)
-                    selectedDateTime = dateTimeFormat.format(calendar.time)
+                    selectedDateTime = calendar.timeInMillis
                 },
                 calendar.get(Calendar.HOUR_OF_DAY),
                 calendar.get(Calendar.MINUTE),
@@ -166,8 +215,8 @@ fun CreateTaskScreen(
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    var categoryText by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+
 
     val filteredCategories = allCategories.filter {
         it.name.contains(categoryText, ignoreCase = true) && categoryText.isNotBlank()
@@ -176,6 +225,7 @@ fun CreateTaskScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .background(color = Color(0xFFD9D9D9))
     ) {
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 64.dp)) {
             Row(
@@ -190,27 +240,16 @@ fun CreateTaskScreen(
                     Text(
                         "Created:",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
+                        fontSize = 24.sp,
+                        style = TextStyle(fontFamily = Manuale)
                     )
-                    FloatingFrame(
-                        modifier = Modifier
-                            .padding(vertical = 0.dp, horizontal = 16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                "",
-                                fontSize = 20.sp,
-                            )
-                            Text(
-                                "",
-                                fontSize = 20.sp,
-                            )
-                        }
-                    }
+                    val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                    val dateString = dateFormat.format(Date(task.createdAt))
+
+                    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    val timeString = timeFormat.format(Date(task.createdAt))
+                    DateTimePanel(dateString,timeString)
+
                 }
                 Column(
                     modifier = Modifier
@@ -220,41 +259,19 @@ fun CreateTaskScreen(
                     Text(
                         "Due To:",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp
+                        fontSize = 24.sp,
+                        style = TextStyle(fontFamily = Manuale)
                     )
+                    if (selectedDateTime != null) {
 
-                    FloatingFrame(
-                        modifier = Modifier
-                            .padding(vertical = 0.dp, horizontal = 16.dp)
-                            .clickable{
-                                datePickerDialog.show()
-                            }
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            if (selectedDateTime.isNotEmpty()) {
-                                Text(
-                                    "$onlyDate",
-                                    fontSize = 20.sp,
-                                )
-                                Text(
-                                    "$onlyTime",
-                                    fontSize = 20.sp,
-                                )
-                            } else {
-                                Text(
-                                    "Select",
-                                    fontSize = 20.sp,
-                                )
-                                Text(
-                                    "date & time",
-                                    fontSize = 20.sp,
-                                )
-                            }
-                        }
+                        val dateFormat = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault())
+                        val dateString = dateFormat.format(selectedDateTime)
+                        val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                        val timeString = timeFormat.format(selectedDateTime)
+
+                        DueToTimePanel(datePickerDialog = datePickerDialog,dateString, timeString)
+                    }else{
+                        DueToTimePanel(datePickerDialog = datePickerDialog,"", "")
                     }
                 }
             }
@@ -265,16 +282,14 @@ fun CreateTaskScreen(
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Task name")
-
-                    var text by remember { mutableStateOf("") }
+                    Text("Task name", style = TextStyle(fontFamily = Manuale))
 
                     TextField(
-                        value = text,
+                        value = task.title,
                         onValueChange = {
-                            text = it
+                            task = task.copy(title = it)
                         },
-                        placeholder = { Text("Enter task name", fontSize = 18.sp) },
+                        placeholder = { Text("Enter task name", fontSize = 18.sp, color = Color.Black,style = TextStyle(fontFamily = Manuale)) },
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -284,17 +299,22 @@ fun CreateTaskScreen(
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.LightGray
+                            focusedTextColor = Color.Black,
+                            unfocusedTextColor = Color.Black
+                        ),
+                        textStyle = TextStyle(
+                            fontFamily = Manuale,
+                            fontSize = 28.sp
                         ),
                         modifier = Modifier
                             .background(Color.Transparent)
                             .fillMaxWidth()
+
                     )
                 }
                 Box(modifier = Modifier.weight(1f)) {
                     Column() {
-                        Text("Category")
+                        Text("Category", style = TextStyle(fontFamily = Manuale))
 
                         TextField(
                             value = categoryText,
@@ -302,8 +322,12 @@ fun CreateTaskScreen(
                                 categoryText = it
                                 expanded = it.isNotBlank()
                             },
+                            textStyle = TextStyle(
+                                fontFamily = Manuale,
+                                fontSize = 28.sp
+                            ),
                             placeholder = { Text("Select or create category", fontSize = 18.sp,
-                                color = Color.Black) },
+                                color = Color.Black, style = TextStyle(fontFamily = Manuale)) },
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
@@ -313,8 +337,8 @@ fun CreateTaskScreen(
                                 focusedIndicatorColor = Color.Transparent,
                                 unfocusedIndicatorColor = Color.Transparent,
                                 disabledIndicatorColor = Color.Transparent,
-                                focusedTextColor = Color.White,
-                                unfocusedTextColor = Color.LightGray
+                                focusedTextColor = Color.Black,
+                                unfocusedTextColor = Color.Black
                             ),
                             modifier = Modifier
                                 .background(Color.Transparent)
@@ -325,15 +349,16 @@ fun CreateTaskScreen(
                             enter = fadeIn(), exit = fadeOut()
                         ) {
                             Surface(
+                                color = Color.Transparent,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .wrapContentSize()
-                                    .background(Color.DarkGray),
-                                shape = RoundedCornerShape(8.dp),
-                                shadowElevation = 8.dp
+                                    .zIndex(1000f)
+                                    .background(Color.Transparent),
                             ) {
-                                LazyColumn {
-                                    items(filteredCategories.size) { index ->
+                                LazyColumn()
+                                {
+                                    items(min(filteredCategories.size,3)) { index ->
                                         val category = filteredCategories[index]
                                         Text(
                                             text = category.name,
@@ -344,7 +369,9 @@ fun CreateTaskScreen(
                                                     expanded = false
                                                 }
                                                 .padding(12.dp),
-                                            color = Color.White
+                                            color = Color.Black,
+                                            style = TextStyle(
+                                                fontFamily = Manuale)
                                         )
                                     }
                                 }
@@ -360,12 +387,18 @@ fun CreateTaskScreen(
                     .padding(top = 15.dp)
             ) {
 
-                Text("Task description")
+                Text("Task description", style = TextStyle(fontFamily = Manuale))
 
                 TextField(
-                    value = description,
-                    placeholder = { Text("Enter your task description", fontSize = 18.sp) },
-                    onValueChange = { description = it },
+                    value = task.description,
+                    placeholder = { Text("Enter your task description", fontSize = 18.sp, color = Color.Black, style = TextStyle(fontFamily = Manuale)) },
+                    onValueChange = {
+                        task = task.copy(description = it)
+                    },
+                    textStyle = TextStyle(
+                        fontFamily = Manuale,
+                        fontSize = 18.sp
+                    ),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent,
@@ -374,8 +407,8 @@ fun CreateTaskScreen(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.LightGray
+                        focusedTextColor = Color.Black,
+                        unfocusedTextColor = Color.Black
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -437,16 +470,29 @@ fun CreateTaskScreen(
             }
 
         }
+        val coroutineScope = rememberCoroutineScope()
+
         FloatingActionButton(
             onClick = {
-                //todo Add task or modify task
-                (context as? Activity)?.finish()
+                coroutineScope.launch {
+
+                    val existingCategory = allCategories.find {
+                        it.name.trim().equals(categoryText.trim(), ignoreCase = true)
+                    }
+
+                    val categoryId = existingCategory?.id ?: categoryViewModel.addCategoryAndReturnId(categoryText.trim()).toInt()
+
+                    task.isDone = false
+                    task.categoryId = categoryId
+                    taskViewModel.insert(task)
+                    (context as? Activity)?.finish()
+                }
             },
             modifier = Modifier
-                .padding(24.dp)
+                .padding(top = 48.dp, start = 16.dp)
                 .align(Alignment.TopStart)
                 .size(32.dp),
-            containerColor = Color(0xFFE0E0E0),
+            containerColor = Color(0xFFD9D9D9),
             contentColor = Color.Black
         ) {
             Icon(

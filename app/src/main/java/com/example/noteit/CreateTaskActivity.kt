@@ -1,16 +1,10 @@
 package com.example.noteit
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.ViewModelProvider
 import com.example.noteit.data.DatabaseProvider
 import com.example.noteit.data.factory.CategoryViewModelFactory
@@ -20,14 +14,13 @@ import com.example.noteit.data.repository.TaskRepository
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
 import com.example.noteit.screens.CreateTaskScreen
-import com.example.noteit.ui.theme.NoteItTheme
 
 class CreateTaskActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        val noteId = intent.getStringExtra("")
+        val taskId = intent.getStringExtra("TaskId")
 
         val db = DatabaseProvider.getDatabase(applicationContext)
 
@@ -40,7 +33,7 @@ class CreateTaskActivity : ComponentActivity() {
         val categoryViewModel = ViewModelProvider(this, categoryViewModelFactory)[CategoryViewModel::class.java]
 
         setContent {
-            CreateTaskScreen(noteId?.toInt(),categoryViewModel,taskViewModel)
+            CreateTaskScreen(taskId?.toInt(),categoryViewModel,taskViewModel)
         }
     }
 }

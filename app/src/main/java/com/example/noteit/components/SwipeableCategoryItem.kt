@@ -27,11 +27,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asComposeRenderEffect
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.noteit.data.model.Category
 import com.example.noteit.data.model.Task
+import com.example.noteit.ui.theme.Manuale
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlinx.coroutines.launch
@@ -104,7 +106,7 @@ fun SwipeableCategoryItem(
                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                 ) {
                     Text(text = category.name,
-                        fontSize = 18.sp)
+                        fontSize = 18.sp,style = TextStyle(fontFamily = Manuale))
                 }
             }
         }
