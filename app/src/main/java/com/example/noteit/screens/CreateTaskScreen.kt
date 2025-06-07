@@ -16,9 +16,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,13 +32,18 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -51,10 +58,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -166,33 +176,63 @@ fun DueToTimePanel(
     }
 }
 
-suspend fun copyFileToInternalStorage(context: Context, uri: Uri): File? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val contentResolver = context.contentResolver
-            val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
+suspend fun copyFileToInternalStorage(
+    context: Context,
+    uri: Uri,
+    customName: String
+): File? = withContext(Dispatchers.IO) {
+    try {
+        val contentResolver = context.contentResolver
+        val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
 
-            val name = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-                cursor.moveToFirst()
-                cursor.getString(nameIndex)
-            } ?: "attachment_${System.currentTimeMillis()}"
+        val originalName = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            cursor.moveToFirst()
+            cursor.getString(nameIndex)
+        } ?: "plik.tmp"
 
-            val attachmentsDir = File(context.filesDir, "attachments")
-            if (!attachmentsDir.exists()) attachmentsDir.mkdir()
+        val extension = originalName.substringAfterLast('.', "")
+        val baseFileName = if (extension.isNotEmpty()) "$customName.$extension" else customName
 
-            val outputFile = File(attachmentsDir, name)
-            inputStream.use { input ->
-                outputFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
+        val attachmentsDir = File(context.filesDir, "attachments")
+        if (!attachmentsDir.exists()) attachmentsDir.mkdir()
+
+        val outputFile = generateUniqueFileName(attachmentsDir, baseFileName, extension)
+
+        inputStream.use { input ->
+            outputFile.outputStream().use { output ->
+                input.copyTo(output)
             }
-            outputFile
-        } catch (e: Exception) {
-            Log.e("AttachmentCopy", "Failed to copy file", e)
-            null
         }
+        outputFile
+    } catch (e: Exception) {
+        Log.e("AttachmentCopy", "Błąd kopiowania pliku", e)
+        null
     }
+}
+
+private fun generateUniqueFileName(directory: File, fileName: String, extension: String): File {
+    var outputFile = File(directory, fileName)
+    var counter = 1
+
+    while (outputFile.exists()) {
+        val nameWithoutExtension = if (extension.isNotEmpty()) {
+            fileName.substringBeforeLast(".$extension")
+        } else {
+            fileName
+        }
+
+        val newFileName = if (extension.isNotEmpty()) {
+            "${nameWithoutExtension}_$counter.$extension"
+        } else {
+            "${nameWithoutExtension}_$counter"
+        }
+
+        outputFile = File(directory, newFileName)
+        counter++
+    }
+
+    return outputFile
 }
 
 fun openFile(context: Context, file: File) {
@@ -211,6 +251,8 @@ fun CreateTaskScreen(
     taskViewModel: TaskViewModel,
     attachmentViewModel: AttachmentViewModel
 ) {
+
+    val listState = rememberLazyListState()
 
     var task by remember { mutableStateOf<Task>(
         Task(
@@ -278,27 +320,20 @@ fun CreateTaskScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
+    var selectedUri by remember { mutableStateOf<Uri?>(null) }
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var customFileName by remember { mutableStateOf("") }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri ->
-            if (uri != null) {
-                coroutineScope.launch {
-                    val copiedFile = copyFileToInternalStorage(context, uri)
-                    if (copiedFile != null) {
-                        val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
-
-                        newAttachments.add(
-                            Attachment(
-                                taskId = -1,
-                                filePath = copiedFile.absolutePath,
-                                mimeType = mimeType
-                            )
-                        )
-                    }
-                }
+            uri?.let {
+                selectedUri = it
+                showRenameDialog = true
             }
         }
     )
+
 
     var expanded by remember { mutableStateOf(false) }
 
@@ -312,6 +347,60 @@ fun CreateTaskScreen(
             .fillMaxSize()
             .background(color = Color(0xFFD9D9D9))
     ) {
+        if (showRenameDialog && selectedUri != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showRenameDialog = false
+                    selectedUri = null
+                },
+                title = { Text("Nazwij załącznik") },
+                text = {
+                    TextField(
+                        value = customFileName,
+                        onValueChange = { customFileName = it },
+                        label = { Text("Nazwa pliku (bez rozszerzenia)") }
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showRenameDialog = false
+
+                        coroutineScope.launch {
+                            selectedUri?.let { uri ->
+                                val file = copyFileToInternalStorage(
+                                    context,
+                                    uri,
+                                    customFileName
+                                )
+                                file?.let {
+                                    val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
+                                    newAttachments.add(
+                                        Attachment(
+                                            taskId = -1,
+                                            filePath = file.absolutePath,
+                                            mimeType = mimeType
+                                        )
+                                    )
+                                }
+                            }
+                            customFileName = ""
+                            selectedUri = null
+                        }
+                    }) {
+                        Text("Save")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showRenameDialog = false
+                        selectedUri = null
+                        customFileName = ""
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 64.dp)) {
             Row(
                 modifier = Modifier
@@ -333,7 +422,7 @@ fun CreateTaskScreen(
 
                     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
                     val timeString = timeFormat.format(Date(task.createdAt))
-                    DateTimePanel(dateString,timeString)
+                    DateTimePanel(dateString, timeString)
 
                 }
                 Column(
@@ -354,9 +443,9 @@ fun CreateTaskScreen(
                         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
                         val timeString = timeFormat.format(selectedDateTime)
 
-                        DueToTimePanel(datePickerDialog = datePickerDialog,dateString, timeString)
-                    }else{
-                        DueToTimePanel(datePickerDialog = datePickerDialog,"", "")
+                        DueToTimePanel(datePickerDialog = datePickerDialog, dateString, timeString)
+                    } else {
+                        DueToTimePanel(datePickerDialog = datePickerDialog, "", "")
                     }
                 }
             }
@@ -374,7 +463,14 @@ fun CreateTaskScreen(
                         onValueChange = {
                             task = task.copy(title = it)
                         },
-                        placeholder = { Text("Enter task name", fontSize = 18.sp, color = Color.Black,style = TextStyle(fontFamily = Manuale)) },
+                        placeholder = {
+                            Text(
+                                "Enter task name",
+                                fontSize = 18.sp,
+                                color = Color.Black,
+                                style = TextStyle(fontFamily = Manuale)
+                            )
+                        },
                         singleLine = true,
                         colors = TextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
@@ -411,8 +507,12 @@ fun CreateTaskScreen(
                                 fontFamily = Manuale,
                                 fontSize = 28.sp
                             ),
-                            placeholder = { Text("Select or create category", fontSize = 18.sp,
-                                color = Color.Black, style = TextStyle(fontFamily = Manuale)) },
+                            placeholder = {
+                                Text(
+                                    "Select or create category", fontSize = 18.sp,
+                                    color = Color.Black, style = TextStyle(fontFamily = Manuale)
+                                )
+                            },
                             singleLine = true,
                             colors = TextFieldDefaults.colors(
                                 focusedContainerColor = Color.Transparent,
@@ -443,7 +543,7 @@ fun CreateTaskScreen(
                             ) {
                                 LazyColumn()
                                 {
-                                    items(min(filteredCategories.size,3)) { index ->
+                                    items(min(filteredCategories.size, 3)) { index ->
                                         val category = filteredCategories[index]
                                         Text(
                                             text = category.name,
@@ -456,7 +556,8 @@ fun CreateTaskScreen(
                                                 .padding(12.dp),
                                             color = Color.Black,
                                             style = TextStyle(
-                                                fontFamily = Manuale)
+                                                fontFamily = Manuale
+                                            )
                                         )
                                     }
                                 }
@@ -476,7 +577,14 @@ fun CreateTaskScreen(
 
                 TextField(
                     value = task.description,
-                    placeholder = { Text("Enter your task description", fontSize = 18.sp, color = Color.Black, style = TextStyle(fontFamily = Manuale)) },
+                    placeholder = {
+                        Text(
+                            "Enter your task description",
+                            fontSize = 18.sp,
+                            color = Color.Black,
+                            style = TextStyle(fontFamily = Manuale)
+                        )
+                    },
                     onValueChange = {
                         task = task.copy(description = it)
                     },
@@ -510,7 +618,7 @@ fun CreateTaskScreen(
                         modifier = Modifier
                             .background(color = Color(0xFFCECECE))
                             .padding(16.dp)
-                            .clickable{
+                            .clickable {
                                 notififationOn = !notififationOn
                             }
                     ) {
@@ -552,23 +660,86 @@ fun CreateTaskScreen(
             }
 
             val allAttachments = existingAttachments + newAttachments
+            Box() {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 96.dp)
+                ) {
+                    items(allAttachments) { attachment ->
+                        val file = File(attachment.filePath)
+                        FloatingFrame {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp)
+                            ) {
+                                Row(
+                                    Modifier
+                                        .fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.baseline_attach_file_24),
+                                        contentDescription = "attachment"
+                                    )
 
-            LazyColumn(
+                                    Spacer(modifier = Modifier.width(8.dp))
 
-            ) {
-                items(allAttachments) { attachment ->
-                    val file = File(attachment.filePath)
+                                    Box(
+                                        Modifier
+                                            .clickable {
+                                                openFile(context, file)
+                                            }
+                                            .weight(1f)
+                                    ) {
+                                        Text(
+                                            text = file.name,
+                                            textDecoration = TextDecoration.Underline,
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    }
 
-                    Row(
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = Color.Red,
+                                        modifier = Modifier
+                                            .padding(start = 8.dp, end = 16.dp)
+                                            .clickable{
+                                                if (existingAttachments.contains(attachment)) {
+                                                    attachmentViewModel.deleteAttachment(attachment)
+                                                    existingAttachments.remove(attachment)
+                                                } else if (newAttachments.contains(attachment)) {
+                                                    newAttachments.remove(attachment)
+                                                }
+                                                val deleted = file.delete()
+                                                if (!deleted) {
+                                                    Log.w("Attachment", "Nie udało się usunąć pliku: ${file.absolutePath}")
+                                                }
+                                            }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                if (listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index != listState.layoutInfo.totalItemsCount - 1) {
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                openFile(context, file)
-                            }
-                            .padding(16.dp)
-                    ) {
-                        Text(text = "Załącznik: ${file.name}")
-                    }
+                            .height(64.dp)
+                            .background(
+                                brush = Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color(0xFFD9D9D9))
+                                )
+                            )
+                            .align(Alignment.BottomCenter)
+                    )
                 }
             }
         }
