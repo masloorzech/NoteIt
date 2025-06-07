@@ -1,6 +1,7 @@
 package com.example.noteit.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,13 +55,19 @@ fun TaskPreview(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ){
-                    Text("$title",
-                        fontSize = 24.sp,
-                        fontWeight = Bold, style = TextStyle(fontFamily = Manuale))
+                    Box(Modifier.weight(3f)) {
+                        Text(
+                            "$title",
+                            fontSize = 24.sp,
+                            fontWeight = Bold, style = TextStyle(fontFamily = Manuale),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-                    Spacer(Modifier
-                        .weight(1f))
-                    CategoryChip(category)
+                    Box(Modifier.weight(1f)) {
+                        CategoryChip(category)
+                    }
 
                     if (notification){
                         Icon(

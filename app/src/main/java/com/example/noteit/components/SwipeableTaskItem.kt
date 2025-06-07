@@ -171,7 +171,7 @@ fun SwipeableTaskItem(
                         "dd.MM.yyyy HH:mm",
                         Locale.getDefault()
                     ).format(task.dueAt),
-                    attachmentFlag = task.attachmentId != null,
+                    attachmentFlag = task.hasAttachment,
                     notificationFlag = task.hasNotification,
                     modifier = Modifier
                         .clickable { onClick() }

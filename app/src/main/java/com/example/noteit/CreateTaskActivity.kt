@@ -7,10 +7,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.ViewModelProvider
 import com.example.noteit.data.DatabaseProvider
+import com.example.noteit.data.factory.AttachmentViewModelFactory
 import com.example.noteit.data.factory.CategoryViewModelFactory
 import com.example.noteit.data.factory.TaskViewModelFactory
+import com.example.noteit.data.repository.AttachmentRepository
 import com.example.noteit.data.repository.CategoryRepository
 import com.example.noteit.data.repository.TaskRepository
+import com.example.noteit.data.viewModel.AttachmentViewModel
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
 import com.example.noteit.screens.CreateTaskScreen
@@ -32,8 +35,12 @@ class CreateTaskActivity : ComponentActivity() {
         val categoryViewModelFactory = CategoryViewModelFactory(categoryRepository)
         val categoryViewModel = ViewModelProvider(this, categoryViewModelFactory)[CategoryViewModel::class.java]
 
+        val attachmentRepository = AttachmentRepository(db.attachmentDao())
+        val attachmentViewModelFactory = AttachmentViewModelFactory(attachmentRepository)
+        val attachmentViewModel = ViewModelProvider(this, attachmentViewModelFactory)[AttachmentViewModel::class.java]
+
         setContent {
-            CreateTaskScreen(taskId?.toInt(),categoryViewModel,taskViewModel)
+            CreateTaskScreen(taskId?.toInt(),categoryViewModel,taskViewModel, attachmentViewModel)
         }
     }
 }

@@ -2,6 +2,7 @@ package com.example.noteit.data.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.noteit.data.model.Attachment
 import com.example.noteit.data.model.Task
 import com.example.noteit.data.repository.TaskRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -26,8 +27,8 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
         repository.update(updatedTask)
     }
 
-    fun insert(task: Task) = viewModelScope.launch {
-        repository.insert(task)
+    suspend fun insert(task: Task): Int {
+        return repository.insert(task)
     }
 
     fun update(task: Task) = viewModelScope.launch {
@@ -37,4 +38,5 @@ class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
     fun delete(task: Task) = viewModelScope.launch {
         repository.delete(task)
     }
+
 }

@@ -24,13 +24,11 @@ data class Task(
     var description: String,
 
     @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "due_at") val dueAt: Long,
+    @ColumnInfo(name = "due_at") var dueAt: Long,
 
     var isDone: Boolean = false,
-    val hasNotification: Boolean = true,
-
-    @ColumnInfo(name = "attachment_id", index = true)
-    val attachmentId: Int? = null,
+    val hasNotification: Boolean = false,
+    var hasAttachment : Boolean = false,
 
     @ColumnInfo(name = "category_id", index = true)
     var categoryId: Int? = null

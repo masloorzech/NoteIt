@@ -3,7 +3,14 @@ package com.example.noteit.screens
 import android.app.Activity
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -22,6 +29,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,7 +42,9 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -48,15 +58,22 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import androidx.core.content.FileProvider
 import com.example.noteit.R
 import com.example.noteit.components.FloatingFrame
+import com.example.noteit.data.model.Attachment
 import com.example.noteit.data.model.Category
 import com.example.noteit.data.model.Task
+import com.example.noteit.data.viewModel.AttachmentViewModel
 import com.example.noteit.data.viewModel.CategoryViewModel
 import com.example.noteit.data.viewModel.TaskViewModel
 import com.example.noteit.ui.theme.Manuale
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
@@ -149,12 +166,50 @@ fun DueToTimePanel(
     }
 }
 
+suspend fun copyFileToInternalStorage(context: Context, uri: Uri): File? {
+    return withContext(Dispatchers.IO) {
+        try {
+            val contentResolver = context.contentResolver
+            val inputStream = contentResolver.openInputStream(uri) ?: return@withContext null
+
+            val name = contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+                val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                cursor.moveToFirst()
+                cursor.getString(nameIndex)
+            } ?: "attachment_${System.currentTimeMillis()}"
+
+            val attachmentsDir = File(context.filesDir, "attachments")
+            if (!attachmentsDir.exists()) attachmentsDir.mkdir()
+
+            val outputFile = File(attachmentsDir, name)
+            inputStream.use { input ->
+                outputFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            outputFile
+        } catch (e: Exception) {
+            Log.e("AttachmentCopy", "Failed to copy file", e)
+            null
+        }
+    }
+}
+
+fun openFile(context: Context, file: File) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+    val intent = Intent(Intent.ACTION_VIEW)
+    intent.setDataAndType(uri, context.contentResolver.getType(uri))
+    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    context.startActivity(intent)
+}
+
 
 @Composable
 fun CreateTaskScreen(
     taskId: Int?,
     categoryViewModel: CategoryViewModel,
-    taskViewModel: TaskViewModel
+    taskViewModel: TaskViewModel,
+    attachmentViewModel: AttachmentViewModel
 ) {
 
     var task by remember { mutableStateOf<Task>(
@@ -170,7 +225,7 @@ fun CreateTaskScreen(
 
     var categoryText by remember { mutableStateOf("") }
 
-    var selectedDateTime by remember { mutableStateOf<Long?>(null) }
+    val existingAttachments = remember { mutableStateListOf<Attachment>() }
 
     LaunchedEffect(taskId, allCategories) {
         if (taskId != null) {
@@ -178,10 +233,14 @@ fun CreateTaskScreen(
             if (loadedTask != null) {
                 task = loadedTask
                 categoryText = allCategories.find { it.id == task.categoryId }?.name ?: ""
+                val attachmentsFromDb = attachmentViewModel.getAttachmentsForTask(taskId).firstOrNull() ?: emptyList()
+                existingAttachments.clear()
+                existingAttachments.addAll(attachmentsFromDb)
             }
         }
     }
 
+    val newAttachments = remember { mutableStateListOf<Attachment>() }
 
     val scrollState = rememberScrollState()
 
@@ -190,6 +249,8 @@ fun CreateTaskScreen(
     val context = LocalContext.current
 
     val calendar = Calendar.getInstance()
+
+    var selectedDateTime by remember { mutableStateOf<Long?>(task.dueAt) }
 
     val datePickerDialog = DatePickerDialog(
         context,
@@ -213,6 +274,30 @@ fun CreateTaskScreen(
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
+    )
+
+    val coroutineScope = rememberCoroutineScope()
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri ->
+            if (uri != null) {
+                coroutineScope.launch {
+                    val copiedFile = copyFileToInternalStorage(context, uri)
+                    if (copiedFile != null) {
+                        val mimeType = context.contentResolver.getType(uri) ?: "application/octet-stream"
+
+                        newAttachments.add(
+                            Attachment(
+                                taskId = -1,
+                                filePath = copiedFile.absolutePath,
+                                mimeType = mimeType
+                            )
+                        )
+                    }
+                }
+            }
+        }
     )
 
     var expanded by remember { mutableStateOf(false) }
@@ -458,33 +543,65 @@ fun CreateTaskScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.baseline_attach_file_24),
                             contentDescription = "attachment",
+                            modifier = Modifier.clickable {
+                                launcher.launch(arrayOf("*/*"))
+                            }
                         )
                     }
                 }
             }
 
+            val allAttachments = existingAttachments + newAttachments
+
             LazyColumn(
 
             ) {
+                items(allAttachments) { attachment ->
+                    val file = File(attachment.filePath)
 
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                openFile(context, file)
+                            }
+                            .padding(16.dp)
+                    ) {
+                        Text(text = "Załącznik: ${file.name}")
+                    }
+                }
             }
-
         }
-        val coroutineScope = rememberCoroutineScope()
 
         FloatingActionButton(
             onClick = {
                 coroutineScope.launch {
+                    if (categoryText.isBlank()) {
+                        (context as? Activity)?.finish()
+                        return@launch
+                    }
 
                     val existingCategory = allCategories.find {
                         it.name.trim().equals(categoryText.trim(), ignoreCase = true)
                     }
 
-                    val categoryId = existingCategory?.id ?: categoryViewModel.addCategoryAndReturnId(categoryText.trim()).toInt()
+                    val categoryId = existingCategory?.id
+                        ?: categoryViewModel.addCategoryAndReturnId(categoryText.trim()).toInt()
 
                     task.isDone = false
                     task.categoryId = categoryId
-                    taskViewModel.insert(task)
+
+                    if (task.title.isNotBlank() && selectedDateTime != null && selectedDateTime != 0L) {
+                        task.dueAt = selectedDateTime!!
+                        val taskId = taskViewModel.insert(task)
+                        coroutineScope.launch {
+                            for (attachment in newAttachments) {
+                                attachmentViewModel.addAttachmentSuspend(attachment.copy(taskId = taskId))
+                            }
+                            newAttachments.clear()
+                        }
+
+                    }
                     (context as? Activity)?.finish()
                 }
             },

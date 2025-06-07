@@ -13,17 +13,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.ViewModelProvider
 import com.example.noteit.screens.MainScreen
 import com.example.noteit.data.DatabaseProvider
+import com.example.noteit.data.factory.AttachmentViewModelFactory
 import com.example.noteit.data.factory.CategoryViewModelFactory
 import com.example.noteit.data.viewModel.TaskViewModel
 import com.example.noteit.data.factory.TaskViewModelFactory
-import com.example.noteit.data.model.Category
-import com.example.noteit.data.model.Task
+import com.example.noteit.data.repository.AttachmentRepository
 import com.example.noteit.data.repository.CategoryRepository
 import com.example.noteit.data.repository.TaskRepository
+import com.example.noteit.data.viewModel.AttachmentViewModel
 import com.example.noteit.data.viewModel.CategoryViewModel
-import com.example.noteit.screens.CreateTaskScreen
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,21 +38,27 @@ class MainActivity : ComponentActivity() {
         val categoryViewModelFactory = CategoryViewModelFactory(categoryRepository)
         val categoryViewModel = ViewModelProvider(this, categoryViewModelFactory)[CategoryViewModel::class.java]
 
+        val attachmentRepository = AttachmentRepository(db.attachmentDao())
+        val attachmentViewModelFactory = AttachmentViewModelFactory(attachmentRepository)
+        val attachmentViewModel = ViewModelProvider(this, attachmentViewModelFactory)[AttachmentViewModel::class.java]
         setContent {
-            Screen(taskViewModel = taskViewModel, categoryViewModel=categoryViewModel)
+            Screen(taskViewModel = taskViewModel,
+                categoryViewModel = categoryViewModel,
+                attachmentViewModel = attachmentViewModel)
         }
     }
+
 
 }
 
 
 @Composable
-fun Screen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewModel) {
+fun Screen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewModel, attachmentViewModel: AttachmentViewModel) {
     Box(modifier =
         Modifier.background(color = Color(0xFFD9D9D9))
             .fillMaxSize()
 
     ) {
-        MainScreen(taskViewModel,categoryViewModel)
+        MainScreen(taskViewModel,categoryViewModel, attachmentViewModel)
     }
 }
