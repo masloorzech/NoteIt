@@ -2,18 +2,31 @@ package com.example.noteit.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import com.example.noteit.R
 
-// Set of Material typography styles to start with
+
+val Manuale = FontFamily(
+    Font(R.font.manuale, weight = FontWeight.Normal, style = FontStyle.Normal),
+    Font(R.font.manuale_italic, weight = FontWeight.Normal, style = FontStyle.Italic)
+)
+
+// Setof Material typography styles to start with
 val Typography = Typography(
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
+        fontFamily = Manuale,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        fontStyle = FontStyle.Normal,
+        fontSize = 16.sp
+    ),
+    bodyMedium = TextStyle(
+        fontFamily = Manuale,
+        fontStyle = FontStyle.Italic,
+        fontSize = 14.sp
     )
     /* Other default text styles to override
     titleLarge = TextStyle(

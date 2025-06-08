@@ -12,7 +12,7 @@ import com.example.noteit.data.dao.AttachmentDao
 
 @Database(
     entities = [Task::class, Category::class, Attachment::class],
-    version = 3,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

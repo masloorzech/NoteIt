@@ -38,7 +38,7 @@ import kotlin.math.roundToInt
 fun SwipeableTaskItem(
     task: Task,
     categoryMap: Map<Int, String>,
-    selectedCategory: String,
+    selectedCategories: List<String>,
     onSwipeRight: () -> Unit,
     onSwipeLeft: () -> Unit,
     onClick: () -> Unit
@@ -70,18 +70,18 @@ fun SwipeableTaskItem(
         ).asComposeRenderEffect()
     }
 
-    if (selectedCategory.isEmpty() || categoryMap[task.categoryId] == selectedCategory) {
+    if (selectedCategories.isEmpty() || selectedCategories.contains(categoryMap[task.categoryId])) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .background(if (offset.value < 0){
-                    Color(0x85FF2929)
+                    Color(0x859F9F9F)
                 } else if (offset.value > 0) {
                     if (!task.isDone) {
                         Color(0x8529FFA2)
                     }else{
-                        Color(0x85DFFF29)
+                        Color(0x8529FFD4)
                     }
                 }
                 else{
@@ -171,7 +171,7 @@ fun SwipeableTaskItem(
                         "dd.MM.yyyy HH:mm",
                         Locale.getDefault()
                     ).format(task.dueAt),
-                    attachmentFlag = task.attachmentId != null,
+                    attachmentFlag = task.hasAttachment,
                     notificationFlag = task.hasNotification,
                     modifier = Modifier
                         .clickable { onClick() }

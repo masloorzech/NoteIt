@@ -20,18 +20,16 @@ import androidx.room.PrimaryKey
 data class Task(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
-    val title: String,
-    val description: String,
+    var title: String,
+    var description: String,
 
     @ColumnInfo(name = "created_at") val createdAt: Long,
-    @ColumnInfo(name = "due_at") val dueAt: Long,
+    @ColumnInfo(name = "due_at") var dueAt: Long,
 
     var isDone: Boolean = false,
-    val hasNotification: Boolean = true,
-
-    @ColumnInfo(name = "attachment_id", index = true)
-    val attachmentId: Int? = null,
+    var hasNotification: Boolean = false,
+    var hasAttachment : Boolean = false,
 
     @ColumnInfo(name = "category_id", index = true)
-    val categoryId: Int? = null
+    var categoryId: Int? = null
 )
