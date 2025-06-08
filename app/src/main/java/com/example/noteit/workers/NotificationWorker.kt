@@ -10,10 +10,13 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.example.noteit.R
 import android.Manifest
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
+import com.example.noteit.CreateTaskActivity
 
 class NotificationWorker(
     context: Context,
@@ -27,15 +30,26 @@ class NotificationWorker(
 
         val title = inputData.getString("title") ?: "Task"
         val description = inputData.getString("description") ?: "Time to finish"
-        val taskId = inputData.getInt("taskId", 0)
+        val taskId = inputData.getInt("taskId", -1)
 
-        Log.d("NotificationWorker", "doWork executed for task id: $taskId")
+        val intent = Intent(applicationContext, CreateTaskActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("TaskId", taskId.toString())
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            applicationContext,
+            taskId,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(R.drawable.outline_notifications_24)
             .setContentTitle(title)
             .setContentText(description)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .build()
 
