@@ -761,7 +761,10 @@ fun CreateTaskScreen(
 
                     task.isDone = false
                     task.categoryId = categoryId
-
+                    task.hasNotification = notififationOn
+                    if (newAttachments.isNotEmpty() || existingAttachments.isNotEmpty()){
+                        task.hasAttachment = true
+                    }
                     if (task.title.isNotBlank() && selectedDateTime != null && selectedDateTime != 0L) {
                         task.dueAt = selectedDateTime!!
                         val taskId = taskViewModel.insert(task)

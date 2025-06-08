@@ -27,7 +27,7 @@ data class Task(
     @ColumnInfo(name = "due_at") var dueAt: Long,
 
     var isDone: Boolean = false,
-    val hasNotification: Boolean = false,
+    var hasNotification: Boolean = false,
     var hasAttachment : Boolean = false,
 
     @ColumnInfo(name = "category_id", index = true)

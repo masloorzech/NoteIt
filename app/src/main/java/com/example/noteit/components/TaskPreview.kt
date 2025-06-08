@@ -55,7 +55,7 @@ fun TaskPreview(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ){
-                    Box(Modifier.weight(3f)) {
+                    Box(Modifier.weight(2f)) {
                         Text(
                             "$title",
                             fontSize = 24.sp,
