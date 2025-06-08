@@ -12,10 +12,7 @@ import com.example.noteit.R
 import android.Manifest
 import android.app.PendingIntent
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.util.Log
 import androidx.annotation.RequiresPermission
-import androidx.core.content.ContextCompat
 import com.example.noteit.CreateTaskActivity
 
 class NotificationWorker(
