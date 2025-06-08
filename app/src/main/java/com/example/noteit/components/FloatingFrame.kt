@@ -27,7 +27,7 @@ fun FloatingFrame(
     elevation: Dp = 8.dp,
     backgroundColor: Color = Color(0xFFCECECE),
     contentPadding: PaddingValues = PaddingValues(16.dp),
-    content: @Composable ColumnScope.() -> Unit
+    content: @Composable (ColumnScope.() -> Unit)
 ){
     Surface(
         modifier = modifier

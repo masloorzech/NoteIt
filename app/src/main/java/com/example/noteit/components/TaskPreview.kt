@@ -1,19 +1,12 @@
 package com.example.noteit.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight.Companion.Bold
 import androidx.compose.ui.text.style.TextAlign
@@ -33,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.noteit.R
+import com.example.noteit.ui.theme.Manuale
 
 
 @Composable
@@ -40,14 +35,18 @@ fun TaskPreview(
     title: String,
     category: String,
     desctiption: String,
-    date: String
+    date: String,
+    attachmentFlag: Boolean,
+    notificationFlag: Boolean,
+    modifier: Modifier = Modifier,
 ){
 
-    var attachment by remember { mutableStateOf(true) }
+    var attachment by remember { mutableStateOf(attachmentFlag) }
 
-    var notification by remember { mutableStateOf(true) }
+    var notification by remember { mutableStateOf(notificationFlag) }
 
-    FloatingFrame {
+    FloatingFrame(modifier,
+        elevation = 0.dp) {
         Row(){
             Column(){
                 Row(
@@ -56,13 +55,19 @@ fun TaskPreview(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ){
-                    Text("$title",
-                        fontSize = 24.sp,
-                        fontWeight = Bold)
+                    Box(Modifier.weight(2f)) {
+                        Text(
+                            "$title",
+                            fontSize = 24.sp,
+                            fontWeight = Bold, style = TextStyle(fontFamily = Manuale),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
 
-                    Spacer(Modifier
-                        .weight(1f))
-                    CategoryChip(category)
+                    Box(Modifier.weight(1f)) {
+                        CategoryChip(category)
+                    }
 
                     if (notification){
                         Icon(
@@ -92,28 +97,18 @@ fun TaskPreview(
                     .height(10.dp))
                 Text("$desctiption",
                     maxLines = 2,
-                    fontSize = 16.sp,
+                    fontSize = 18.sp,
                     overflow = TextOverflow.Ellipsis,
                     fontStyle = FontStyle.Italic,
-                    textAlign = TextAlign.Justify)
+                    textAlign = TextAlign.Justify,
+                    style = TextStyle(fontFamily = Manuale))
                 Spacer(Modifier
                     .height(10.dp))
-                CategoryChip("$date")
+                Text("$date",
+                    fontSize = 16.sp
+                ,style = TextStyle(fontFamily = Manuale))
             }
         }
     }
 }
 
-
-@Composable
-@Preview(showBackground = true)
-fun TaskPreviewPreview(){
-
-    TaskPreview(
-        title = "Task name",
-        category = "daily",
-        desctiption = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean enim sapien, placerat ut blandit sit amet, condimentum a turpis. In in viverra enim, at blandit lorem. Nulla nisl arcu, mattis non tellus sit amet, auctor vehicula est. Sed justo turpis, dignissim et nisl sed, dictum volutpat justo. Aliquam elementum nulla lorem, quis ultrices libero efficitur eget. Quisque facilisis tellus non eros dignissim accumsan quis ac ante. Sed malesuada ligula eu eros ultrices interdum. Donec nulla neque, sodales id laoreet eget, aliquet posuere nisl. Phasellus facilisis varius tincidunt. Suspendisse nulla enim, aliquam ut sapien eu, posuere tristique est.",
-        date = "29.05.2025 12:00"
-    )
-
-}
