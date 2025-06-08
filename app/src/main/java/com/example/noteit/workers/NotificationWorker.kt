@@ -62,7 +62,7 @@ class NotificationWorker(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Powiadomienia o zadaniach",
+                "NoteIt Notifications",
                 NotificationManager.IMPORTANCE_HIGH
             )
             val manager = applicationContext.getSystemService(NotificationManager::class.java)
