@@ -269,6 +269,8 @@ fun CreateTaskScreen(
 
     val existingAttachments = remember { mutableStateListOf<Attachment>() }
 
+    var doneTask by remember { mutableStateOf(false) }
+
     LaunchedEffect(taskId, allCategories) {
         if (taskId != null) {
             val loadedTask = taskViewModel.getTaskById(taskId)
@@ -278,6 +280,7 @@ fun CreateTaskScreen(
                 val attachmentsFromDb = attachmentViewModel.getAttachmentsForTask(taskId).firstOrNull() ?: emptyList()
                 existingAttachments.clear()
                 existingAttachments.addAll(attachmentsFromDb)
+                doneTask = task.isDone
             }
         }
     }
@@ -657,6 +660,34 @@ fun CreateTaskScreen(
                         )
                     }
                 }
+                Spacer(
+                    modifier = Modifier.weight(1f)
+                )
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    shadowElevation = if (doneTask) 0.dp else 8.dp,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .background(color = Color(0xFFCECECE))
+                            .padding(16.dp)
+                            .clickable {
+                                doneTask = !doneTask
+                            }
+                    ) {
+                        if (doneTask) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.baseline_clear_24),
+                                contentDescription = "attachment",
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.baseline_check_24),
+                                contentDescription = "attachment",
+                            )
+                        }
+                    }
+                }
             }
 
             val allAttachments = existingAttachments + newAttachments
@@ -759,7 +790,7 @@ fun CreateTaskScreen(
                     val categoryId = existingCategory?.id
                         ?: categoryViewModel.addCategoryAndReturnId(categoryText.trim()).toInt()
 
-                    task.isDone = false
+                    task.isDone = doneTask
                     task.categoryId = categoryId
                     task.hasNotification = notififationOn
                     if (newAttachments.isNotEmpty() || existingAttachments.isNotEmpty()){

@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -44,6 +46,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.noteit.CreateTaskActivity
 import com.example.noteit.R
 import com.example.noteit.components.FloatingFrame
@@ -83,6 +86,8 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
 
     val listState = rememberLazyListState()
 
+    val rowState = rememberLazyListState()
+
     val categoryList by categoryViewModel.categories.collectAsState()
 
     val taskList by taskViewModel.allTasks.collectAsState()
@@ -98,10 +103,18 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
     val context = LocalContext.current
 
     var showDoneTasks by remember { mutableStateOf(true) }
+    
+    var sortByTime by remember { mutableStateOf(false) }
 
-    val filteredTasks = remember(taskList, searchBar, showDoneTasks) {
+    val filteredTasks = remember(taskList, searchBar, showDoneTasks, sortByTime) {
         val visibleTasks = taskList.filter { showDoneTasks || !it.isDone }
-        fuzzyFilter(visibleTasks, searchBar)
+        val matchedTasks = fuzzyFilter(visibleTasks, searchBar)
+
+        if (sortByTime) {
+            matchedTasks.sortedBy { it.dueAt }
+        } else {
+            matchedTasks
+        }
     }
 
     Box(modifier = Modifier
@@ -209,31 +222,83 @@ fun MainScreen(taskViewModel: TaskViewModel, categoryViewModel: CategoryViewMode
                 }
             }
 
-            LazyRow(
-                modifier = Modifier
+            Row(
+                Modifier.padding(start = 16.dp)
                     .fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = PaddingValues(start = 16.dp)
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                items(categoryList.size) { index ->
+                Box(
+                    Modifier.width(50.dp)
+                        .aspectRatio(1f)
+                ) {
+                    FloatingFrame(
+                        elevation = if (sortByTime) 0.dp else 8.dp
+                    ) {
+                        IconButton(onClick = {
+                            sortByTime = !sortByTime
+                        }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.outline_timeline_24),
+                                contentDescription = "sort by time",
+                                tint = Color.Black
+                            )
+                        }
+                    }
+                }
+                Box() {
+                    LazyRow(
+                        state = rowState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(start = 16.dp)
+                    ) {
+                        items(categoryList.size) { index ->
 
-                    val category = categoryList[index]
+                            val category = categoryList[index]
 
-                    key(category.id) {
-                        Box(contentAlignment = Alignment.TopCenter)
-                        {
-                            SwipeableCategoryItem(category= category, selectedCategories = selectedCategories,
-                                onSwipeUp = {
-                                    categoryViewModel.deleteCategory(category)
-                                    selectedCategories = selectedCategories - category.name
-                                },
-                                onClick = {
-                                    selectedCategories = if (selectedCategories.contains(category.name)) {
-                                        selectedCategories - category.name
-                                    } else {
-                                        selectedCategories + category.name
-                                    }
-                                })
+                            key(category.id) {
+                                Box(contentAlignment = Alignment.TopCenter)
+                                {
+                                    SwipeableCategoryItem(
+                                        category = category,
+                                        selectedCategories = selectedCategories,
+                                        onSwipeUp = {
+                                            categoryViewModel.deleteCategory(category)
+                                            selectedCategories =
+                                                selectedCategories - category.name
+                                        },
+                                        onClick = {
+                                            selectedCategories =
+                                                if (selectedCategories.contains(category.name)) {
+                                                    selectedCategories - category.name
+                                                } else {
+                                                    selectedCategories + category.name
+                                                }
+                                        })
+                                }
+                            }
+                        }
+                    }
+                    if (rowState.firstVisibleItemScrollOffset > 0 || rowState.firstVisibleItemIndex > 0) {
+                        Box(
+                            modifier = Modifier
+                                .padding(start = 16.dp)
+                                .matchParentSize()
+                                .zIndex(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .width(64.dp)
+                                    .background(
+                                        brush = Brush.horizontalGradient(
+                                            colors = listOf(Color(0xFFD9D9D9), Color.Transparent)
+                                        )
+                                    )
+                            )
                         }
                     }
                 }
