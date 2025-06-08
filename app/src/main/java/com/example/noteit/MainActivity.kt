@@ -22,16 +22,45 @@ import com.example.noteit.data.repository.CategoryRepository
 import com.example.noteit.data.repository.TaskRepository
 import com.example.noteit.data.viewModel.AttachmentViewModel
 import com.example.noteit.data.viewModel.CategoryViewModel
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+        } else {
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            when {
+                ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED -> {
+                }
+                shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                else -> {
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        }
+
         val db = DatabaseProvider.getDatabase(applicationContext)
 
         val taskRepository = TaskRepository(db.taskDao())
-        val taskViewModelFactory = TaskViewModelFactory(taskRepository)
+        val taskViewModelFactory = TaskViewModelFactory(application = application, repository = taskRepository)
         val taskViewModel = ViewModelProvider(this, taskViewModelFactory)[TaskViewModel::class.java]
 
         val categoryRepository = CategoryRepository(db.categoryDao())
@@ -41,6 +70,7 @@ class MainActivity : ComponentActivity() {
         val attachmentRepository = AttachmentRepository(db.attachmentDao())
         val attachmentViewModelFactory = AttachmentViewModelFactory(attachmentRepository)
         val attachmentViewModel = ViewModelProvider(this, attachmentViewModelFactory)[AttachmentViewModel::class.java]
+
         setContent {
             Screen(taskViewModel = taskViewModel,
                 categoryViewModel = categoryViewModel,

@@ -28,7 +28,7 @@ class CreateTaskActivity : ComponentActivity() {
         val db = DatabaseProvider.getDatabase(applicationContext)
 
         val taskRepository = TaskRepository(db.taskDao())
-        val taskViewModelFactory = TaskViewModelFactory(taskRepository)
+        val taskViewModelFactory = TaskViewModelFactory(application = application, repository = taskRepository)
         val taskViewModel = ViewModelProvider(this, taskViewModelFactory)[TaskViewModel::class.java]
 
         val categoryRepository = CategoryRepository(db.categoryDao())

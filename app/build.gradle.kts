@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     kapt(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
+    implementation ("androidx.work:work-runtime-ktx:2.10.1")
     implementation("androidx.compose.material3:material3:1.2.1")
 
 }

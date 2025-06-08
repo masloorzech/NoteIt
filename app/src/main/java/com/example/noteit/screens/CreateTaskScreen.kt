@@ -269,7 +269,11 @@ fun CreateTaskScreen(
 
     val existingAttachments = remember { mutableStateListOf<Attachment>() }
 
+    var notififationOn by remember { mutableStateOf(false) }
+
     var doneTask by remember { mutableStateOf(false) }
+
+    var selectedDateTime by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(taskId, allCategories) {
         if (taskId != null) {
@@ -281,6 +285,8 @@ fun CreateTaskScreen(
                 existingAttachments.clear()
                 existingAttachments.addAll(attachmentsFromDb)
                 doneTask = task.isDone
+                notififationOn = task.hasNotification
+                selectedDateTime = task.dueAt
             }
         }
     }
@@ -289,13 +295,9 @@ fun CreateTaskScreen(
 
     val scrollState = rememberScrollState()
 
-    var notififationOn by remember { mutableStateOf(false) }
-
     val context = LocalContext.current
 
     val calendar = Calendar.getInstance()
-
-    var selectedDateTime by remember { mutableStateOf<Long?>(task.dueAt) }
 
     val datePickerDialog = DatePickerDialog(
         context,
