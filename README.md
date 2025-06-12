@@ -1,6 +1,6 @@
 # 📒 NoteIt
 
-**NoteIt** is a mobile application built using **Jetpack (Compose/XML)** that allows users to manage their personal task list efficiently. Users can create, edit, and delete tasks, receive notifications about upcoming deadlines, and organize tasks using categories and attachments.
+**NoteIt** is a mobile application built using **Jetpack Compose** that allows users to manage their personal task list efficiently. Users can create, edit, and delete tasks, receive notifications about upcoming deadlines, and organize tasks using categories and attachments.
 
 ## 📸 Screenshots
 
