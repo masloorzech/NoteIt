@@ -1,6 +1,7 @@
 package com.example.noteit.data.repository
 
 import com.example.noteit.data.dao.TaskDao
+import com.example.noteit.data.model.Attachment
 import com.example.noteit.data.model.Task
 import kotlinx.coroutines.flow.Flow
 
@@ -10,6 +11,10 @@ class TaskRepository(private val taskDao: TaskDao) {
 
     suspend fun insert(task: Task) : Int {
         return taskDao.insert(task).toInt()
+    }
+
+    suspend fun getAttachmentsByTaskId(taskId: Int): List<Attachment> {
+        return taskDao.getAttachmentsByTaskId(taskId)
     }
 
     suspend fun update(task: Task) = taskDao.update(task)

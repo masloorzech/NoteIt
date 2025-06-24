@@ -2,7 +2,6 @@ package com.example.noteit.data.viewModel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.noteit.data.model.Attachment
 import com.example.noteit.data.model.Task
@@ -14,6 +13,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
+import java.io.File
 
 class TaskViewModel(application: Application, private val repository: TaskRepository) : AndroidViewModel(application) {
 
@@ -47,7 +47,30 @@ class TaskViewModel(application: Application, private val repository: TaskReposi
     }
 
     fun delete(task: Task) = viewModelScope.launch {
-        repository.delete(task)
+        try {
+
+            TaskNotificationManager.cancelNotificationForTask(getApplication(), task.id)
+
+            val attachments = repository.getAttachmentsByTaskId(task.id)
+
+            deleteAttachmentFiles(attachments)
+
+            repository.delete(task)
+        }catch (e: Exception){
+
+            }
+    }
+
+    private fun deleteAttachmentFiles(attachments: List<Attachment>) {
+        attachments.forEach { attachment ->
+            try {
+                val file = File(attachment.filePath)
+                if (file.exists()) {
+                    file.delete()
+                }
+            } catch (e: Exception) {
+            }
+        }
     }
 
 }

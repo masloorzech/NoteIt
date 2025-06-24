@@ -745,14 +745,31 @@ fun CreateTaskScreen(
                                             .padding(start = 8.dp, end = 16.dp)
                                             .clickable{
                                                 if (existingAttachments.contains(attachment)) {
-                                                    attachmentViewModel.deleteAttachment(attachment)
-                                                    existingAttachments.remove(attachment)
+                                                    coroutineScope.launch {
+                                                        try {
+                                                            attachmentViewModel.deleteAttachment(attachment)
+                                                            val file = File(attachment.filePath)
+                                                            if (file.exists()) {
+                                                                val deleted = file.delete()
+                                                                if (!deleted) {
+                                                                    Log.w("Attachment", "Nie udało się usunąć pliku: ${file.absolutePath}")
+                                                                }
+                                                            }
+                                                            existingAttachments.remove(attachment)
+
+                                                        } catch (e: Exception) {
+                                                        }
+                                                    }
                                                 } else if (newAttachments.contains(attachment)) {
-                                                    newAttachments.remove(attachment)
-                                                }
-                                                val deleted = file.delete()
-                                                if (!deleted) {
-                                                    Log.w("Attachment", "Nie udało się usunąć pliku: ${file.absolutePath}")
+                                                    try {
+                                                        val file = File(attachment.filePath)
+                                                        if (file.exists()) {
+                                                            val deleted = file.delete()
+                                                        }
+                                                        newAttachments.remove(attachment)
+                                                    } catch (e: Exception) {
+                                                        Log.e("Attachment", "Błąd podczas usuwania nowego załącznika", e)
+                                                    }
                                                 }
                                             }
                                     )
@@ -797,6 +814,8 @@ fun CreateTaskScreen(
                     task.hasNotification = notififationOn
                     if (newAttachments.isNotEmpty() || existingAttachments.isNotEmpty()){
                         task.hasAttachment = true
+                    }else{
+                        task.hasAttachment = false
                     }
                     if (task.title.isNotBlank() && selectedDateTime != null && selectedDateTime != 0L) {
                         task.dueAt = selectedDateTime!!

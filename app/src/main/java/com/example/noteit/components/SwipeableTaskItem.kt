@@ -113,7 +113,7 @@ fun SwipeableTaskItem(
                 }else if (offset.value<0){
                     Icon(
                         imageVector = Icons.Default.Delete,
-                        contentDescription = "Rollback",
+                        contentDescription = "Delete",
                         tint = Color.Black,
                         modifier = Modifier.padding(end = 16.dp)
                     )
