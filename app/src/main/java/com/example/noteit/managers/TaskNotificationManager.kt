@@ -47,4 +47,14 @@ object TaskNotificationManager {
             }
         }
     }
+    fun cancelNotificationForTask(context: Context, taskId: Int) {
+        val workManager = WorkManager.getInstance(context)
+        val workName = "task_notification_$taskId"
+
+        workManager.cancelUniqueWork(workName)
+
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+        notificationManager.cancel(taskId.toInt())
+
+    }
 }
