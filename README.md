@@ -62,7 +62,7 @@
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/NoteIt.git
+   git clone https://github.com/masloorzech/NoteIt.git
 2. Open the project in Android Studio
 
 3. Build and run the app on an emulator or a physical device
@@ -76,7 +76,7 @@ AlarmManager for notifications
 screen
 
 ### 🧑‍💻 Author
-Created by [Your Name]
+Created by masloorzech
 Feel free to contribute or report issues!
 
 This project is licensed under the MIT License – see the LICENSE file for details.
